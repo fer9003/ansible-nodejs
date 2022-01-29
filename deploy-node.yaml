@@ -1,0 +1,59 @@
+---
+- name: Install Node and npm
+  hosts: ec2
+  become: true
+  tasks:
+    - name: Update apt repo and cache
+      apt: 
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+    - name: Install nodejs and npm
+      apt:
+        pkg:
+          - nodejs
+          - npm
+
+- name: Create new Linux user for node app
+  hosts: ec2
+  become: true
+  tasks:
+    - name: Create linux user
+      user:
+        name: andres
+        comment: Andres admin
+        group: admin
+
+    - name: Allow andres to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^andres'
+        line: 'andres ALL=(ALL) NOPASSWD:ALL'
+        validate: 'visudo -cf %s'
+
+- name: Deploy nodejs app
+  hosts: ec2
+  become: true
+  become_user: andres
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Copy and Unpack the nodejs project in one step
+      unarchive: 
+        src: "{{location}}/nodejs-app-{{version}}.tgz"
+        dest: "{{destination}}"
+    - name: Install dependencies
+      npm:
+        path: "{{destination}}/package"
+    - name: Start the application
+      command: 
+        chdir: "{{destination}}/package/app"
+        cmd: node server
+      async: 1000
+      poll: 0
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status
+    - debug: msg={{app_status.stdout_lines}}
+

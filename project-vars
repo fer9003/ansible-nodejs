@@ -1,0 +1,3 @@
+location: /Users/andres/Documents/DevOpsBootcamp_TechWorld/proyectos/Ansible_proyectos/ansible_node/simple-nodejs
+version: 1.0.0
+destination: /home/andres
